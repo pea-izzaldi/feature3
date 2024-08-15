@@ -12,7 +12,6 @@ const DATASET_ID = 'testingtracker-2d31c.analytics_387519606';
 const PROJECT_ID = 'testingtracker-2d31c';
 const PROPERTY_ID = '387519606'
 const TABLE_ID = 'testingtracker-2d31c.analytics_387519606.pseudonymous_users_20240806';
-const API_KEY = 'AIzaSyCKzG_UkLZs9spOC4XTeoaqndAFyVl8iHo';
 
 app.use(cors());
 app.use(express.json());
