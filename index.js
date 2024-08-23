@@ -7,40 +7,18 @@ const app = express();
 const port = 5555;
 const cron = require('node-cron');
 
+// disesuaikan path nya
 const SERVICE_ACCOUNT_FILE = '/Users/izzaldi/Documents/GitHub/testingtracker-2d31c-b22e98ec5aaf.json';
-const DATASET_ID = 'testingtracker-2d31c.analytics_387519606';
 const PROJECT_ID = 'testingtracker-2d31c';
-const PROPERTY_ID = '387519606'
-const TABLE_ID = 'testingtracker-2d31c.analytics_387519606.pseudonymous_users_20240806';
 
 app.use(cors());
 app.use(express.json());
-
-const formatDate = () => {
-    const date = new Date();
-    const year = date.getFullyear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return year+month+day;
-}
-
-// const get28DaysAgo = (date) => {
-//     const newDate = new Date(date);
-//     newDate.setDate(newDate.getDate() - 28);
-//     return newDate;
-// }
 
 app.get('/', (req, res) => {
     res.send('Hello World!');
 });
 
 app.get('/api', (req, res) => {
-    const today = new Date();
-    // formatDate(today);
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
-    console.log(year + month);
     res.json({message: 'Welcome to the API '});
 });
 
@@ -49,6 +27,7 @@ const auth = new google.auth.GoogleAuth({
     scopes: 'https://www.googleapis.com/auth/analytics.readonly',
 });
 
+// ambil dari GA4
 app.get('/api/audiencesga', async(req, res) => {
     try{
         const analyticsData = google.analyticsdata('v1beta');
@@ -71,57 +50,7 @@ app.get('/api/audiencesga', async(req, res) => {
     }
 });
 
-// app.get('/api/audiencesga', async(req, res) => {
-//     try{
-//         const analyticsData = google.analyticsdata('v1beta');
-//         const authClient = await auth.getClient();
-//         const today = new Date();
-
-//         const response = await analyticsData.properties.runReport({
-//             auth: authClient,
-//             requestBody: {
-//                 dimensions: [{name: 'audienceName'}],
-//                 metrics: [{name: 'totalusers'}],
-//                 dateRanges: [{startDate: '28daysAgo', endDate: 'today'}],
-//             },
-//             property: 'properties/387519606',
-//         });
-//         const rows = response.data.rows;
-
-//         const transformedData = rows.map(item => {
-//             return {
-//               audience: item.dimensionValues[0].value,
-//               totalUser: item.metricValues[0].value,
-//               getDate: today,
-//             };
-//           });
-
-//           console.log(transformedData);
-//         //   const batch = db.batch();
-//         for(const data of transformedData){
-//             await db.collection('audiencesList').doc().set(data);
-//         }
-//         res.send('sukses');
-
-        
-        
-//         //   transformedData.array.forEach(element => {
-//         //     const docRef = db.collection('audiencesList').doc();
-//         //     batch.set(docRef, element);
-//         //   });
-//         //   await batch.commit();
-
-//         //   const docref = await db.collection('audiencesList').add(transformedData);
-//         //   res.send(docref.id);
-
-//         // res.json(transformedData);
-//     } catch(err){
-//         console.log(' Error executing query:', err);
-//         res.status(500).send('Internal Server Error');
-//     }
-// });
-
-cron.schedule('45 23 * * *', async () => {
+cron.schedule('0 0 * * *', async () => {
     try{
         const analyticsData = google.analyticsdata('v1beta');
         const authClient = await auth.getClient();
@@ -156,30 +85,94 @@ cron.schedule('45 23 * * *', async () => {
     }
 });
 
-app.get('/api/audiencesga2', async(req, res) => {
-    try{
-        const analyticsData = google.analyticsdata('v1beta');
-        const authClient = await auth.getClient();
 
-        const response = await analyticsData.properties.runReport({
-            auth: authClient,
-            requestBody: {
-                dimensions: [
-                    {name: 'audienceName'},
-                    {name: 'customUser:userId'},
-                ],
-                metrics: [{name: 'totalusers'}],
-                dateRanges: [{startDate: '28daysAgo', endDate: 'today'}],
-            },
-            property: 'properties/387519606',
+// ambil dari firestore
+
+app.get('/api/audiencesList', async (req, res) => {
+    const dateParam = req.body.date
+    
+    const queryDate = dateParam ? new Date(dateParam) : new Date();
+    queryDate.setHours(0, 0, 0, 0);
+    const queryDate2 = new Date(queryDate)
+    queryDate2.setDate(queryDate.getDate() + 1);
+    console.log(queryDate)
+    try {
+        const querySnapshot = await db.collection('audiencesList')
+            .where('getDate', '>=', queryDate)
+            .where('getDate', '<', queryDate2)
+            .get();
+        
+        if (querySnapshot.empty) {
+            return res.status(404).json({message: 'No data found for this date'});
+        }
+        const data = [];
+        querySnapshot.forEach(doc => {
+            data.push({id: doc.id, ...doc.data()});
         });
-        const rows = response.data.rows;
-        res.json(rows);
-    } catch(err){
-        console.log(' Error executing query:', err);
-        res.status(500).send('Internal Server Error');
+
+        res.status(200).json(data);
+    } catch (error) {
+        console.error('Error retrieving data:', error);
+        res.status(500).json({error: 'Failed to retrieve data'});
     }
+
 });
+
+// coba kirim parameter lain
+
+// app.get('/api/audiencesga2', async(req, res) => {
+//     try{
+//         const analyticsData = google.analyticsdata('v1beta');
+//         const authClient = await auth.getClient();
+//         const today = new Date();
+
+//         const response = await analyticsData.properties.runReport({
+//             auth: authClient,
+//             requestBody: {
+//                 dimensions: [
+//                     {name: 'audienceName'},
+//                     {name: 'customUser:userId'},
+//                     {name: 'city'},
+//                 ],
+//                 metrics: [{name: 'totalusers'}],
+//                 dateRanges: [{startDate: '28daysAgo', endDate: 'today'}],
+//                 "dimensionFilter": {
+//                     "filter": {
+//                         "fieldName": "audienceName",
+//                         "stringFilter": {
+//                         "matchType": "EXACT",
+//                         "value": 'Purchasers'
+//                         }
+//                     }
+//                 }
+//             },
+//             property: 'properties/387519606',
+//         });
+//         const rows = response.data.rows;
+
+//         const transformedData = rows.map(item => {
+//             return {
+//               audienceName: item.dimensionValues[0].value,
+//               userId: item.dimensionValues[1].value,
+//               city: item.dimensionValues[2].value,
+//               totalUser: item.metricValues[0].value,
+//               getDate: today,
+//             };
+//           });
+//           console.log(transformedData);
+          
+//         for(const data of transformedData){
+//             await db.collection('audiencesListUserId').doc().set(data);
+//         }
+
+//         res.json(rows);
+//     } catch(err){
+//         console.log(' Error executing query:', err);
+//         res.status(500).send('Internal Server Error');
+//     }
+// // });
+
+//ambil dari bq
 
 const bigquery = new BigQuery({
     projectId: PROJECT_ID,
