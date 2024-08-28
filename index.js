@@ -50,15 +50,25 @@ app.get('/api/audiencesga', async(req, res) => {
     }
 });
 
-app.delete('/api/audiencesReport/:id', async(req, res) => {
-    const id = req.params;
+app.delete('/api/audiencesReport/:ids', async(req, res) => {
+    const ids = req.params;
+    console.log('id nya :', ids);
+
+    const idsArray = req.params.ids.split(',')
+
 
     try {
-        await db.collection('Live Export').doc(id).delete();
-        console.log(`delete ${id} berhasil`)
+        if(!idsArray.length) {
+            return res.status(400).send({error: 'Format ID tidak valid'});
+        }
+        
+        const deletePromises = idsArray.map(id => db.collection('Live Export').doc(id).delete());
+        await Promise.all(deletePromises);
+
+        res.status(200).send({message: `Report berhasil dihapus`});
     } catch (error) {
-        console.error("Error menghapus document: ", error);
-        res.status(500).send({error: 'Gagal delete document'});
+        console.error("Error menghapus report: ", error);
+        res.status(500).send({error: 'Gagal delete report'});
     }
 });
 
