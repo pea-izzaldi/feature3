@@ -50,6 +50,7 @@ app.get('/api/audiencesga', async(req, res) => {
     }
 });
 
+// multiple delete audience report
 app.delete('/api/audiencesReport/:ids', async(req, res) => {
     const ids = req.params;
     console.log('id nya :', ids);
