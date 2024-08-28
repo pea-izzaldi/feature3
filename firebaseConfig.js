@@ -1,5 +1,5 @@
 const admin = require('firebase-admin');
-const serviceAccount = '/Users/izzaldi/Documents/GitHub/private-key/testingtracker-2d31c-768bbb72dd43.json';
+const serviceAccount = '/Users/izzaldi/Documents/GitHub/private-key/konnectpro-b215e-b318d994dd45.json';
 
 
 admin.initializeApp({

@@ -7,7 +7,7 @@ const app = express();
 const port = 5555;
 const cron = require('node-cron');
 
-// disesuaikan path nya
+// disesuaikan path nya (Path BQ)
 const SERVICE_ACCOUNT_FILE = '/Users/izzaldi/Documents/GitHub/testingtracker-2d31c-b22e98ec5aaf.json';
 const PROJECT_ID = 'testingtracker-2d31c';
 
@@ -50,7 +50,19 @@ app.get('/api/audiencesga', async(req, res) => {
     }
 });
 
-cron.schedule('0 0 * * *', async () => {
+app.delete('/api/audiencesReport/:id', async(req, res) => {
+    const id = req.params;
+
+    try {
+        await db.collection('Live Export').doc(id).delete();
+        console.log(`delete ${id} berhasil`)
+    } catch (error) {
+        console.error("Error menghapus document: ", error);
+        res.status(500).send({error: 'Gagal delete document'});
+    }
+});
+
+cron.schedule('55 11 * * *', async () => {
     try{
         const analyticsData = google.analyticsdata('v1beta');
         const authClient = await auth.getClient();
